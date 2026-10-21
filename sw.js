@@ -1,5 +1,5 @@
 // 離線快取。更新網頁內容後把版本號加一，使用者下次開啟就會換成新版。
-const CACHE = 'toeic-quiz-v2';
+const CACHE = 'toeic-quiz-v3';
 const ASSETS = [
   './',
   'index.html',

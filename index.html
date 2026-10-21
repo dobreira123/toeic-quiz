@@ -348,7 +348,7 @@
           <small>欄位：單字、詞性、中文意思、例句、分類</small>
         </label>
         <div class="status" id="loadStatus">
-          <span id="loadText">尚未載入單字。</span><button class="link-btn" id="useSample">使用內建單字庫（300 字）</button>
+          <span id="loadText">尚未載入單字。</span><button class="link-btn" id="useSample">使用內建單字庫</button>
         </div>
       </div>
 
@@ -1610,6 +1610,8 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ---------- 啟動 ---------- */
+
+$('useSample').textContent = `使用內建單字庫（${rowsToWords(parseCSV(BUILTIN_CSV)).length} 字）`;
 
 const saved = storeGet(KEYS.words, null);
 if (saved && ['內建範例', BUILTIN_NAME].includes(saved.source)) {
