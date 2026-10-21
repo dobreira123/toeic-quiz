@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7a9e9f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="多益單字">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>多益單字測驗</title>
+<style>
+  :root {
+    --bg: #f6f4f0;
+    --card: #ffffff;
+    --text: #3d3a36;
+    --muted: #8a847c;
+    --line: #e7e2da;
+    --primary: #7a9e9f;
+    --primary-dark: #5f8384;
+    --primary-soft: #e6efef;
+    --correct: #6fa87a;
+    --correct-soft: #e5f2e7;
+    --wrong: #d0816f;
+    --wrong-soft: #f8e7e2;
+    --radius: 14px;
+    /* 熟練度：同一色相由深到淺（已驗證相鄰色差） */
+    --lv-mastered: #3f6b6c;
+    --lv-learning: #86afb0;
+    --lv-new: #e4ded4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.6;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 { font-size: 1.5rem; margin: 0; letter-spacing: .05em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 12px rgba(80, 70, 60, .06);
+    padding: 24px 20px;
+  }
+  .card + .card { margin-top: 16px; }
+  .hidden { display: none !important; }
+
+  /* 首頁 */
+  .nav { display: flex; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .nav-btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    border-radius: 999px; padding: 6px 16px; font-size: .9rem; cursor: pointer;
+    transition: all .15s;
+  }
+  .nav-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+  .nav-btn .count {
+    display: inline-block; min-width: 1.6em; margin-left: 4px; padding: 0 6px;
+    border-radius: 999px; background: var(--wrong-soft); color: var(--wrong); font-size: .8rem;
+  }
+  .due-card { display: flex; align-items: center; gap: 14px; padding: 18px 20px; margin-bottom: 16px; }
+  .due-card .num { font-size: 2rem; font-weight: 700; color: var(--primary-dark); line-height: 1; }
+  .due-card .txt { flex: 1; font-size: .9rem; color: var(--muted); }
+  .due-card .txt b { display: block; color: var(--text); font-size: 1rem; }
+  .due-card .btn { width: auto; padding: 10px 18px; }
+
+  .field { margin-bottom: 18px; }
+  .field .title { display: block; font-weight: 600; margin-bottom: 8px; font-size: .95rem; }
+  .file-drop {
+    display: block;
+    border: 2px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .file-drop:hover, .file-drop.drag { border-color: var(--primary); background: var(--primary-soft); }
+  .file-drop input { display: none; }
+  .status { font-size: .88rem; margin-top: 8px; color: var(--muted); }
+  .status.ok { color: var(--correct); }
+  .status.err { color: var(--wrong); }
+  .link-btn {
+    background: none; border: none; color: var(--primary-dark);
+    text-decoration: underline; cursor: pointer; font-size: .88rem; padding: 0;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip span {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--line); cursor: pointer; font-size: .9rem;
+    transition: all .15s;
+  }
+  .chip input:checked + span { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .chip input:focus-visible + span { outline: 3px solid var(--primary-soft); outline-offset: 2px; }
+  select, input[type="number"], input[type="text"] {
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line); font-size: 1rem; background: #fff; color: var(--text);
+    font-family: inherit;
+  }
+  select { width: 100%; }
+  .count-row { display: flex; gap: 10px; }
+  .count-row input { width: 110px; }
+  .book-hint { font-size: .88rem; color: var(--muted); margin: -6px 0 16px; }
+
+  .btn {
+    display: block; width: 100%; padding: 13px;
+    border: none; border-radius: 12px;
+    background: var(--primary); color: #fff;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+    transition: background .15s;
+  }
+  .btn:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn:disabled { background: #c9cfcf; cursor: not-allowed; }
+  .btn:focus { outline: none; }
+  .btn:focus-visible { outline: 3px solid var(--primary-soft); outline-offset: 2px; }
+  .btn.secondary { background: var(--primary-soft); color: var(--primary-dark); }
+  .btn.secondary:hover:not(:disabled) { background: #d6e5e5; }
+  .btn.ghost { background: none; color: var(--muted); font-weight: 400; font-size: .9rem; }
+  .btn.ghost:hover:not(:disabled) { background: var(--wrong-soft); color: var(--wrong); }
+  .btn.warn { background: var(--wrong-soft); color: var(--wrong); }
+  .btn.warn:hover:not(:disabled) { background: #f3d9d1; }
+  .btn.good { background: var(--correct-soft); color: #4e8a5a; }
+  .btn.good:hover:not(:disabled) { background: #d4ead8; }
+
+  /* 測驗畫面 */
+  .topbar { display: flex; justify-content: space-between; font-size: .88rem; color: var(--muted); margin-bottom: 8px; }
+  .topbar .quit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .88rem; padding: 0; }
+  .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-bottom: 18px; }
+  .progress div { height: 100%; background: var(--primary); width: 0; transition: width .3s; }
+
+  .mode-label { text-align: center; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+  .word-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+  .word { font-size: 2rem; font-weight: 700; letter-spacing: .02em; word-break: break-word; text-align: center; }
+  .word.zh { font-size: 1.7rem; }
+  .sentence { font-size: 1.15rem; line-height: 1.8; text-align: center; margin: 4px 0; }
+  .blank {
+    display: inline-block; min-width: 5em; border-bottom: 2px solid var(--primary);
+    margin: 0 4px; height: 1.2em; vertical-align: -0.15em;
+  }
+  .speak {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border-radius: 50%; border: none;
+    background: var(--primary-soft); color: var(--primary-dark);
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .speak:hover { background: #d6e5e5; }
+  .speak.small { width: 30px; height: 30px; }
+  .speak.big { width: 84px; height: 84px; }
+  .speak svg { width: 55%; height: 55%; }
+  .meta { text-align: center; color: var(--muted); font-size: .9rem; margin: 6px 0 20px; }
+  .tag {
+    display: inline-block; padding: 1px 10px; border-radius: 999px;
+    background: var(--bg); font-size: .8rem; margin-left: 6px;
+  }
+
+  .options { display: grid; gap: 10px; }
+  .option {
+    text-align: left; padding: 14px 16px;
+    border: 1.5px solid var(--line); border-radius: 12px;
+    background: #fff; color: var(--text); font-size: 1rem;
+    cursor: pointer; transition: all .15s; font-family: inherit;
+    display: flex; gap: 10px; align-items: baseline;
+  }
+  .option .key { color: var(--muted); font-size: .85rem; min-width: 1.2em; }
+  .option:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+  .option:disabled { cursor: default; color: var(--text); }
+  .option.correct { border-color: var(--correct); background: var(--correct-soft); }
+  .option.wrong { border-color: var(--wrong); background: var(--wrong-soft); }
+
+  /* 拼字 */
+  .spell-row { display: flex; gap: 10px; }
+  .spell-row input {
+    flex: 1; min-width: 0; font-size: 1.2rem; letter-spacing: .04em;
+    text-align: center;
+  }
+  .spell-row input:focus { outline: none; border-color: var(--primary); }
+  .spell-row .btn { width: auto; padding: 0 20px; }
+  .diff { font-family: ui-monospace, Consolas, monospace; font-size: 1.25rem; letter-spacing: .08em; margin: 4px 0; word-break: break-all; }
+  .diff .lbl { font-family: inherit; font-size: .82rem; color: var(--muted); letter-spacing: 0; margin-right: 6px; }
+  .diff span.bad { background: var(--wrong); color: #fff; border-radius: 3px; }
+  .diff span.extra { color: var(--wrong); text-decoration: line-through; }
+  .diff span.miss { color: var(--wrong); font-weight: 700; }
+  .diff span.hl { color: var(--wrong); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+
+  /* 字卡 */
+  .flashcard { perspective: 1000px; cursor: pointer; margin-bottom: 18px; user-select: none; }
+  .flashcard .inner {
+    display: grid; transition: transform .45s; transform-style: preserve-3d;
+  }
+  .flashcard.flipped .inner { transform: rotateY(180deg); }
+  .flashcard .face {
+    grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    min-height: 220px; border: 1.5px solid var(--line); border-radius: var(--radius);
+    padding: 24px 18px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; background: #fff; text-align: center;
+  }
+  .flashcard .back { transform: rotateY(180deg); background: var(--primary-soft); border-color: transparent; }
+  .flashcard .hint { font-size: .8rem; color: var(--muted); }
+  .flashcard .meaning { font-size: 1.4rem; font-weight: 700; }
+  .flashcard .example { font-size: .95rem; }
+  .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .feedback {
+    margin-top: 18px; padding: 14px 16px; border-radius: 12px;
+    animation: fade .25s ease;
+  }
+  .feedback.correct { background: var(--correct-soft); }
+  .feedback.wrong { background: var(--wrong-soft); }
+  .feedback .result { font-weight: 700; margin-bottom: 6px; }
+  .feedback.correct .result { color: #4e8a5a; }
+  .feedback.wrong .result { color: #b5604d; }
+  .feedback .srs-note { font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+  .answer-line { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .answer-line b { font-size: 1.05rem; }
+  .example { display: flex; gap: 8px; align-items: flex-start; font-style: italic; }
+  .example p { margin: 0; flex: 1; }
+  .example mark { background: none; color: var(--primary-dark); font-weight: 700; font-style: normal; }
+  .feedback + .btn { margin-top: 16px; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* 結果畫面 */
+  .score { text-align: center; margin-bottom: 20px; }
+  .score .big { font-size: 3rem; font-weight: 700; color: var(--primary-dark); }
+  .score .sub { color: var(--muted); }
+  .review h3 { font-size: 1rem; margin: 0 0 10px; }
+  .review ul { list-style: none; padding: 0; margin: 0 0 20px; }
+  .review li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .review li .w { font-weight: 600; }
+  .review li .m { color: var(--muted); font-size: .9rem; }
+  .actions { display: grid; gap: 10px; }
+
+  /* 錯題本 */
+  .page-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; gap: 8px; }
+  .page-head h2 { font-size: 1.15rem; margin: 0; }
+  .page-head span { color: var(--muted); font-size: .82rem; text-align: right; }
+  .book-list { list-style: none; padding: 0; margin: 0 0 20px; }
+  .book-list li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .book-list .row { display: flex; align-items: center; gap: 10px; }
+  .book-list .w { font-weight: 700; font-size: 1.05rem; }
+  .book-list .m { color: var(--muted); font-size: .9rem; }
+  .book-list .info { flex: 1; min-width: 0; }
+  .book-list .ex { font-style: italic; font-size: .9rem; margin: 6px 0 0 40px; }
+  .book-list .stats { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin: 8px 0 0 40px; font-size: .82rem; color: var(--muted); }
+  .book-list .due-now { color: var(--wrong); font-weight: 600; }
+  .dots { display: inline-flex; gap: 4px; vertical-align: middle; margin-right: 4px; }
+  .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .dots i.on { background: var(--correct); }
+  .del {
+    border: none; background: none; color: var(--muted); cursor: pointer;
+    font-size: 1.1rem; padding: 4px 8px; border-radius: 8px;
+  }
+  .del:hover { background: var(--wrong-soft); color: var(--wrong); }
+  .empty { text-align: center; color: var(--muted); padding: 24px 0; }
+
+  /* 統計 */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 22px; }
+  .tile { background: var(--bg); border-radius: 12px; padding: 12px 14px; }
+  .tile .v { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+  .tile .v small { font-size: .9rem; font-weight: 400; color: var(--muted); margin-left: 2px; }
+  .tile .k { font-size: .82rem; color: var(--muted); }
+  .chart-block { margin-bottom: 24px; }
+  .chart-block h3 { font-size: .95rem; margin: 0 0 2px; }
+  .chart-block .sub { font-size: .8rem; color: var(--muted); margin: 0 0 8px; }
+  .chart { width: 100%; position: relative; }
+  .chart svg { display: block; overflow: visible; }
+  .chart .axis { font-size: 11px; fill: var(--muted); }
+  .chart .grid { stroke: var(--line); stroke-width: 1; }
+  .chart .baseline { stroke: #cfc8bd; stroke-width: 1; }
+  .chart .bar { fill: var(--primary); }
+  .chart .bar.today { fill: var(--primary-dark); }
+  .chart .hit { fill: transparent; cursor: default; }
+  .chart .hit:hover + .hover-band, .chart .hover-band { pointer-events: none; }
+  .chart .line { fill: none; stroke: var(--primary-dark); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .dot { fill: var(--primary-dark); stroke: #fff; stroke-width: 2; }
+  .chart .cross { stroke: #cfc8bd; stroke-width: 1; }
+  .chart .val { font-size: 11px; fill: var(--text); font-weight: 600; }
+  .chart-empty { font-size: .88rem; color: var(--muted); text-align: center; padding: 24px 0; background: var(--bg); border-radius: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); margin-bottom: 10px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .cat-row { margin-bottom: 12px; }
+  .cat-row .head { display: flex; justify-content: space-between; font-size: .88rem; margin-bottom: 4px; gap: 8px; }
+  .cat-row .head span { color: var(--muted); font-size: .8rem; text-align: right; }
+  .stack { display: flex; gap: 2px; height: 14px; }
+  .stack div { height: 100%; border-radius: 4px; min-width: 4px; }
+  .lv-mastered { background: var(--lv-mastered); }
+  .lv-learning { background: var(--lv-learning); }
+  .lv-new { background: var(--lv-new); }
+  details.table-view { font-size: .85rem; margin-top: 6px; }
+  details.table-view summary { cursor: pointer; color: var(--primary-dark); }
+  details.table-view table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  details.table-view th, details.table-view td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+  details.table-view th:first-child, details.table-view td:first-child { text-align: left; }
+  .tip {
+    position: fixed; z-index: 10; pointer-events: none;
+    background: var(--text); color: #fff; font-size: .8rem; line-height: 1.4;
+    padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+    transform: translate(-50%, calc(-100% - 10px));
+  }
+
+  @media (max-width: 420px) {
+    .card { padding: 20px 16px; }
+    .word { font-size: 1.7rem; }
+    .due-card { flex-wrap: wrap; }
+    .due-card .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>多益單字測驗</h1>
+    <p>每天一點點，把多益單字背熟</p>
+    <div class="nav" id="nav">
+      <button class="nav-btn" id="openBookBtn">📒 錯題本<span class="count" id="bookCount">0</span></button>
+      <button class="nav-btn" id="openStatsBtn">📈 學習統計</button>
+    </div>
+  </header>
+
+  <!-- 首頁 / 設定 -->
+  <section id="setup">
+    <div class="card due-card" id="dueCard">
+      <div class="num" id="dueNum">0</div>
+      <div class="txt"><b>今日待複習</b><span id="dueSub">依間隔重複排程，到期的單字會出現在這裡</span></div>
+      <button class="btn" id="reviewBtn">開始複習</button>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <span class="title">1. 匯入單字 CSV</span>
+        <label class="file-drop" id="drop">
+          <input type="file" id="fileInput" accept=".csv,text/csv">
+          點這裡選擇 CSV 檔，或把檔案拖曳進來<br>
+          <small>欄位：單字、詞性、中文意思、例句、分類</small>
+        </label>
+        <div class="status" id="loadStatus">
+          <span id="loadText">尚未載入單字。</span><button class="link-btn" id="useSample">使用內建單字庫（300 字）</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="title">2. 測驗模式</span>
+        <div class="chips" id="modeChips">
+          <label class="chip"><input type="radio" name="mode" value="en2zh" checked><span>英選中</span></label>
+          <label class="chip"><input type="radio" name="mode" value="zh2en"><span>中選英</span></label>
+          <label class="chip"><input type="radio" name="mode" value="listen"><span>聽音選字</span></label>
+          <label class="chip"><input type="radio" name="mode" value="cloze"><span>例句填空</span></label>
+          <label class="chip"><input type="radio" name="mode" value="spell"><span>拼字</span></label>
+          <label class="chip"><input type="radio" name="mode" value="card"><span>字卡</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="title">3. 選擇分類</span>
+        <div class="chips" id="catChips">
+          <label class="chip"><input type="checkbox" value="基礎" checked><span>基礎</span></label>
+          <label class="chip"><input type="checkbox" value="銜接" checked><span>銜接</span></label>
+          <label class="chip"><input type="checkbox" value="高頻" checked><span>高頻</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="title" for="countSelect">4. 題數</label>
+        <div class="count-row">
+          <select id="countSelect">
+            <option value="10">10 題</option>
+            <option value="20" selected>20 題</option>
+            <option value="30">30 題</option>
+            <option value="0">全部</option>
+            <option value="custom">自訂…</option>
+          </select>
+          <input type="number" id="customCount" class="hidden" min="1" value="15" inputmode="numeric" aria-label="自訂題數">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="title">5. 發音口音</span>
+        <div class="chips" id="accentChips">
+          <label class="chip"><input type="radio" name="accent" value="en-GB" checked><span>英式 UK</span></label>
+          <label class="chip"><input type="radio" name="accent" value="en-US"><span>美式 US</span></label>
+        </div>
+        <div class="status" id="voiceStatus"></div>
+      </div>
+
+      <p class="book-hint hidden" id="bookHint"></p>
+      <button class="btn" id="startBtn" disabled>開始測驗</button>
+    </div>
+  </section>
+
+  <!-- 測驗畫面 -->
+  <section id="quiz" class="card hidden">
+    <div class="topbar">
+      <span id="qIndex">第 1 / 10 題</span>
+      <span><span id="qScore">答對 0</span>　<button class="quit" id="quitBtn">結束</button></span>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+
+    <div id="qArea"></div>
+    <div class="options" id="options"></div>
+    <div class="spell-row hidden" id="spellBox">
+      <input type="text" id="spellInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="輸入英文拼字" aria-label="輸入英文拼字">
+      <button class="btn" id="spellSubmit">確認</button>
+    </div>
+    <div class="card-actions hidden" id="cardActions">
+      <button class="btn warn" id="cardHard">還不熟</button>
+      <button class="btn good" id="cardKnow">會了</button>
+    </div>
+
+    <div id="feedback" class="feedback hidden"></div>
+    <button class="btn hidden" id="nextBtn">下一題</button>
+  </section>
+
+  <!-- 結果畫面 -->
+  <section id="result" class="card hidden">
+    <div class="score">
+      <div class="big" id="finalScore"></div>
+      <div class="sub" id="finalSub"></div>
+    </div>
+    <div class="review" id="review"></div>
+    <div class="actions">
+      <button class="btn" id="retryWrongBtn">只練習答錯的單字</button>
+      <button class="btn secondary" id="restartBtn">回到首頁</button>
+    </div>
+  </section>
+
+  <!-- 錯題本畫面 -->
+  <section id="book" class="card hidden">
+    <div class="page-head">
+      <h2>📒 錯題本</h2>
+      <span>答錯的字依 1 → 3 → 7 → 14 天複習，<br>14 天後再答對即熟練、移出</span>
+    </div>
+    <ul class="book-list" id="bookList"></ul>
+    <div class="actions">
+      <button class="btn" id="practiceBookBtn">練習錯題本</button>
+      <button class="btn secondary" id="bookBackBtn">返回</button>
+      <button class="btn ghost" id="clearBookBtn">清空錯題本</button>
+    </div>
+  </section>
+
+  <!-- 統計畫面 -->
+  <section id="stats" class="card hidden">
+    <div class="page-head"><h2>📈 學習統計</h2></div>
+    <div class="tiles" id="statTiles"></div>
+
+    <div class="chart-block">
+      <h3>每日答題數</h3>
+      <p class="sub">最近 14 天</p>
+      <div class="chart" id="countChart"></div>
+    </div>
+
+    <div class="chart-block">
+      <h3>正確率趨勢</h3>
+      <p class="sub">最近 14 天，沒有作答的日子不畫點</p>
+      <div class="chart" id="accChart"></div>
+      <details class="table-view">
+        <summary>查看數據表</summary>
+        <table id="statTable"></table>
+      </details>
+    </div>
+
+    <div class="chart-block">
+      <h3>各分類熟練度</h3>
+      <p class="sub">已熟練＝通過 14 天複習；學習中＝排程複習中</p>
+      <div class="legend">
+        <span><i class="lv-mastered"></i>已熟練</span>
+        <span><i class="lv-learning"></i>學習中</span>
+        <span><i class="lv-new"></i>未學習</span>
+      </div>
+      <div id="catChart"></div>
+    </div>
+
+    <button class="btn secondary" id="statsBackBtn">返回</button>
+  </section>
+</div>
+<div class="tip hidden" id="tip"></div>
+
+<script src="words.js"></script>
+<script>
+const SPEAKER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+const CATEGORIES = ['基礎', '銜接', '高頻'];
+const BUILTIN_NAME = '內建單字庫';
+
+const $ = (id) => document.getElementById(id);
+
+let allWords = [];
+let questions = [];
+let current = 0;
+let score = 0;
+let wrongList = [];
+let answered = false;
+
+/* ---------- localStorage ---------- */
+
+const KEYS = {
+  words: 'toeic-quiz-words',   // 上次匯入的單字表
+  srs: 'toeic-quiz-srs',       // 每個單字的複習排程
+  stats: 'toeic-quiz-stats',   // 每日答題數
+  accent: 'toeic-quiz-accent', // 發音口音
+};
+
+function storeGet(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function storeSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // 無痕模式或儲存空間被封鎖時，紀錄只在這次開啟期間有效
+  }
+}
+
+/* ---------- CSV 解析 ---------- */
+
+// 支援雙引號包住的欄位（例句裡常有逗號）與 "" 跳脫
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); rows.push(row); row = []; field = '';
+    } else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(cell => cell.trim() !== ''));
+}
+
+function rowsToWords(rows) {
+  // 第一列若是標題（第一欄為「單字」或 word）就略過
+  if (rows.length && /^(單字|word)$/i.test(rows[0][0].trim())) rows = rows.slice(1);
+  return rows
+    .map(r => ({
+      word: (r[0] || '').trim(),
+      pos: (r[1] || '').trim(),
+      meaning: (r[2] || '').trim(),
+      example: (r[3] || '').trim(),
+      category: (r[4] || '').trim(),
+    }))
+    .filter(w => w.word && w.meaning);
+}
+
+// Excel（繁中 Windows）存的 CSV 常是 Big5，UTF-8 解碼失敗時改用 Big5
+async function readFileText(file) {
+  const buf = await file.arrayBuffer();
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder('big5').decode(buf);
+  }
+}
+
+function setWords(words, sourceName) {
+  allWords = words;
+  const counts = {};
+  words.forEach(w => counts[w.category || '未分類'] = (counts[w.category || '未分類'] || 0) + 1);
+  const detail = Object.entries(counts).map(([k, v]) => `${k} ${v}`).join('、');
+  $('loadStatus').className = 'status ok';
+  $('loadText').textContent = `已載入「${sourceName}」共 ${words.length} 個單字（${detail}）`;
+  $('useSample').textContent = '改用內建單字庫';
+  $('useSample').classList.toggle('hidden', sourceName === BUILTIN_NAME);
+  $('startBtn').disabled = false;
+}
+
+function loadWords(text, sourceName) {
+  const words = rowsToWords(parseCSV(text));
+  if (words.length < 4) {
+    $('loadStatus').className = 'status err';
+    $('loadText').textContent = `「${sourceName}」只讀到 ${words.length} 個單字，至少需要 4 個才能出四選一題目。`;
+    // 保留上次成功載入的單字表，不因一次失敗的匯入就無法測驗
+    $('startBtn').disabled = allWords.length < 4;
+    return;
+  }
+  setWords(words, sourceName);
+  // 記住這份單字表，下次打開（或離線時）不用重新匯入
+  storeSet(KEYS.words, { source: sourceName, words });
+}
+
+/* ---------- 發音 ---------- */
+
+// 各口音偏好的語音（依序比對名稱），都沒有就用該口音的任一語音，再退回另一種口音
+const VOICE_PREFS = {
+  'en-GB': [/Sonia/i, /Libby/i, /Ryan/i, /Maisie/i, /Google UK English/i, /Daniel/i, /Kate/i, /Serena/i],
+  'en-US': [/Aria/i, /Jenny/i, /Guy/i, /Google US English/i, /Samantha/i, /Microsoft/i],
+};
+
+let accent = storeGet(KEYS.accent, 'en-GB');
+let enVoice = null;
+
+const voiceLang = v => v.lang.replace('_', '-');
+
+function bestVoice(voices, lang) {
+  const same = voices.filter(v => voiceLang(v) === lang);
+  for (const re of VOICE_PREFS[lang]) {
+    const v = same.find(v => re.test(v.name));
+    if (v) return v;
+  }
+  return same[0] || null;
+}
+
+function pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  const other = accent === 'en-GB' ? 'en-US' : 'en-GB';
+  enVoice = bestVoice(voices, accent)
+         || bestVoice(voices, other)
+         || voices.find(v => voiceLang(v).startsWith('en'))
+         || null;
+  const status = $('voiceStatus');
+  if (!voices.length) {
+    status.textContent = '';
+  } else if (!enVoice) {
+    status.textContent = '找不到英文語音，請在系統設定中安裝英文語音。';
+  } else {
+    const fallback = voiceLang(enVoice) !== accent
+      ? `（這台裝置沒有${accent === 'en-GB' ? '英式' : '美式'}語音，暫用替代）` : '';
+    status.textContent = `目前語音：${enVoice.name}${fallback}`;
+  }
+}
+
+function setAccent(value) {
+  accent = value;
+  storeSet(KEYS.accent, value);
+  pickVoice();
+}
+
+if ('speechSynthesis' in window) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) {
+    alert('這個瀏覽器不支援語音朗讀，建議使用 Chrome、Edge 或 Safari。');
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = enVoice ? enVoice.lang : accent;
+  u.rate = 0.9;
+  if (enVoice) u.voice = enVoice;
+  speechSynthesis.speak(u);
+}
+
+function speakButton(text, size) {
+  const b = document.createElement('button');
+  b.className = 'speak' + (size ? ' ' + size : '');
+  b.title = '發音';
+  b.setAttribute('aria-label', '發音');
+  b.innerHTML = SPEAKER_ICON;
+  b.addEventListener('click', (e) => { e.stopPropagation(); speak(text); });
+  return b;
+}
+
+/* ---------- 日期 ---------- */
+
+const DAY_MS = 86400000;
+
+// 以「本地時間的第幾天」當日期單位，跨時區或夏令時間都不會算錯天數
+function dayNumber(date = new Date()) {
+  return Math.floor((date.getTime() - date.getTimezoneOffset() * 60000) / DAY_MS);
+}
+
+function dayLabel(n) {
+  const d = new Date(n * DAY_MS);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+}
+
+function relativeDay(n) {
+  const diff = n - dayNumber();
+  if (diff <= 0) return '今天';
+  if (diff === 1) return '明天';
+  return `${diff} 天後（${dayLabel(n)}）`;
+}
+
+/* ---------- 間隔重複（錯題本） ---------- */
+
+// level 0–3 對應下次複習間隔 1、3、7、14 天；level 4 = 已熟練
+const INTERVALS = [1, 3, 7, 14];
+const MASTERED = INTERVALS.length;
+
+// 以小寫單字為 key，存完整資料，這樣換了 CSV 也還能複習
+// { word, pos, meaning, example, category, level, due, inBook, wrong, correct, lastWrong }
+let srs = storeGet(KEYS.srs, {});
+
+function wordKey(w) { return w.word.toLowerCase(); }
+
+function saveSrs() {
+  storeSet(KEYS.srs, srs);
+  refreshHome();
+}
+
+// 記錄一次作答，回傳要顯示給使用者的排程說明
+function reviewWord(w, ok) {
+  const key = wordKey(w);
+  const today = dayNumber();
+  const isNew = !srs[key];
+  const rec = srs[key] || { level: 0, due: null, inBook: false, wrong: 0, correct: 0 };
+  Object.assign(rec, { word: w.word, pos: w.pos, meaning: w.meaning, example: w.example, category: w.category });
+  srs[key] = rec;
+  let note;
+
+  if (!ok) {
+    rec.wrong++;
+    rec.lastWrong = Date.now();
+    rec.level = 0;
+    rec.inBook = true;
+    rec.due = today + INTERVALS[0];
+    note = `已加入錯題本，${relativeDay(rec.due)}複習`;
+  } else {
+    rec.correct++;
+    // 還沒到期就答對不升級，避免同一天反覆答對就直接「熟練」；已熟練的字維持不變
+    if (rec.level < MASTERED && (isNew || rec.due <= today)) {
+      rec.level = Math.min(rec.level + 1, MASTERED);
+      if (rec.level === MASTERED) {
+        rec.due = null;
+        note = rec.inBook ? '已熟練，移出錯題本 🎉' : '已熟練 🎉';
+        rec.inBook = false;
+      } else {
+        rec.due = today + INTERVALS[rec.level];
+        note = `下次複習：${relativeDay(rec.due)}`;
+      }
+    }
+  }
+  saveSrs();
+  return note;
+}
+
+function dueWords() {
+  const today = dayNumber();
+  return Object.values(srs).filter(r => r.due !== null && r.due <= today);
+}
+
+function bookEntries() {
+  return Object.values(srs)
+    .filter(r => r.inBook)
+    .sort((a, b) => a.due - b.due || b.lastWrong - a.lastWrong);
+}
+
+/* ---------- 每日統計 ---------- */
+
+// { [dayNumber]: { total, correct } }
+let stats = storeGet(KEYS.stats, {});
+
+function logAnswer(ok) {
+  const d = dayNumber();
+  const s = stats[d] || (stats[d] = { total: 0, correct: 0 });
+  s.total++;
+  if (ok) s.correct++;
+  storeSet(KEYS.stats, stats);
+}
+
+// 今天還沒練習時，從昨天往回算，連續紀錄不會一早就歸零
+function streakDays() {
+  let d = dayNumber();
+  if (!stats[d]) d--;
+  let n = 0;
+  while (stats[d] && stats[d].total > 0) { n++; d--; }
+  return n;
+}
+
+/* ---------- 首頁 ---------- */
+
+function refreshHome() {
+  const due = dueWords().length;
+  $('dueNum').textContent = due;
+  $('reviewBtn').disabled = due === 0;
+  $('dueSub').textContent = due
+    ? '依間隔重複排程，今天該複習了'
+    : '今天沒有到期的單字，可以學新字';
+
+  const n = bookEntries().length;
+  $('bookCount').textContent = n;
+  const hint = $('bookHint');
+  hint.classList.toggle('hidden', n === 0 && due === 0);
+  hint.textContent = `📒 到期複習與錯題本中符合所選分類的單字會優先出題。`;
+}
+
+/* ---------- 測驗模式 ---------- */
+
+const MODES = {
+  en2zh:  { label: '英選中：選出正確的中文意思', answerKey: 'meaning' },
+  zh2en:  { label: '中選英：選出正確的英文單字', answerKey: 'word' },
+  listen: { label: '聽發音：選出你聽到的單字', answerKey: 'word' },
+  cloze:  { label: '例句填空：選出空格中的單字', answerKey: 'word' },
+  spell:  { label: '拼字：聽發音、看中文，拼出英文' },
+  card:   { label: '字卡：點卡片翻面，再標記熟悉程度' },
+};
+
+let mode = 'en2zh';
+let lastSection = 'setup';
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 干擾選項來源：已載入的單字 + 複習紀錄（只練錯題本、沒載入 CSV 時也夠用）
+function distractorPool() {
+  const seen = new Set();
+  return [...allWords, ...Object.values(srs)].filter(w => {
+    const k = wordKey(w);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+function buildOptions(target, pool) {
+  const key = MODES[mode].answerKey;
+  // 排除意思相同的字，避免出現兩個都對的選項（例如中選英的同義字）
+  const candidates = shuffle(pool.filter(w =>
+    w.meaning !== target.meaning && wordKey(w) !== wordKey(target)));
+  // 優先挑同詞性的，比較有鑑別度
+  const ordered = [...candidates.filter(w => w.pos === target.pos), ...candidates.filter(w => w.pos !== target.pos)];
+  const picked = [];
+  for (const w of ordered) {
+    if (picked.length === 3) break;
+    if (!picked.some(p => p[key] === w[key])) picked.push(w);
+  }
+  return shuffle([target, ...picked].map(w => w[key]));
+}
+
+/* ---------- 例句填空：找出例句中的目標單字（含變化形） ---------- */
+
+function wordForms(word) {
+  const w = word.toLowerCase();
+  const forms = new Set([w, w + 's', w + 'es', w + 'ed', w + 'd', w + 'ing', w + "'s"]);
+  if (w.endsWith('y')) {
+    const stem = w.slice(0, -1);
+    forms.add(stem + 'ies');
+    forms.add(stem + 'ied');
+  }
+  if (w.endsWith('e')) forms.add(w.slice(0, -1) + 'ing');
+  // 字尾子音重複：plan → planned, planning
+  const last = w[w.length - 1];
+  if (/[bdgklmnprt]/.test(last)) {
+    forms.add(w + last + 'ed');
+    forms.add(w + last + 'ing');
+  }
+  return forms;
+}
+
+// 回傳 { start, end }；找不到就回傳 null（該字不出填空題）
+function findInSentence(word, sentence) {
+  if (!sentence) return null;
+  const lower = sentence.toLowerCase();
+  if (/\s/.test(word.trim())) {
+    // 片語直接找原文
+    const i = lower.indexOf(word.toLowerCase());
+    return i >= 0 ? { start: i, end: i + word.length } : null;
+  }
+  const forms = wordForms(word);
+  const tokens = [...sentence.matchAll(/[A-Za-z][A-Za-z'-]*/g)];
+  let hit = tokens.find(t => forms.has(t[0].toLowerCase()));
+  // 不規則變化（例如 buy → bought）抓不到時，退而求其次比對字首
+  if (!hit && word.length >= 5) {
+    const prefix = word.toLowerCase().slice(0, word.length - 2);
+    hit = tokens.find(t => t[0].toLowerCase().startsWith(prefix));
+  }
+  return hit ? { start: hit.index, end: hit.index + hit[0].length } : null;
+}
+
+/* ---------- 拼字比對：用編輯距離找出錯的字母位置 ---------- */
+
+// 回傳操作序列：ok（正確）、sub（打錯）、extra（多打）、miss（漏打）
+function spellDiff(typed, expected) {
+  const a = typed, b = expected;
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1);
+    }
+  }
+  const ops = [];
+  let i = a.length, j = b.length;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) {
+      ops.push(a[i - 1] === b[j - 1] ? { type: 'ok', ch: a[i - 1] } : { type: 'sub', ch: a[i - 1], exp: b[j - 1] });
+      i--; j--;
+    } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+      ops.push({ type: 'extra', ch: a[i - 1] });
+      i--;
+    } else {
+      ops.push({ type: 'miss', exp: b[j - 1] });
+      j--;
+    }
+  }
+  return ops.reverse();
+}
+
+function normalizeSpelling(s) {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/* ---------- 測驗流程 ---------- */
+
+function show(sectionId) {
+  ['setup', 'quiz', 'result', 'book', 'stats'].forEach(id => $(id).classList.toggle('hidden', id !== sectionId));
+  $('nav').classList.toggle('hidden', !['setup', 'result'].includes(sectionId));
+  if (['setup', 'result'].includes(sectionId)) lastSection = sectionId;
+  if (sectionId === 'setup') refreshHome();
+  window.scrollTo(0, 0);
+}
+
+function selectedMode() {
+  return document.querySelector('#modeChips input:checked').value;
+}
+
+function selectedCount() {
+  const v = $('countSelect').value;
+  if (v === 'custom') return Math.max(1, Math.floor(Number($('customCount').value)) || 1);
+  return Number(v);
+}
+
+function startQuiz(wordList) {
+  mode = selectedMode();
+  const pool = distractorPool();
+  if (MODES[mode].answerKey && pool.length < 4) {
+    alert('單字不足 4 個，無法出四選一題目，請先匯入 CSV。');
+    return;
+  }
+  if (mode === 'cloze') {
+    const usable = wordList.filter(w => findInSentence(w.word, w.example));
+    if (!usable.length) {
+      alert('這些單字的例句中找不到目標單字，無法出填空題，請換個模式。');
+      return;
+    }
+    wordList = usable;
+  }
+  questions = wordList.map(w => {
+    const q = { ...w };
+    if (MODES[mode].answerKey) q.options = buildOptions(w, pool);
+    if (mode === 'cloze') q.blank = findInSentence(w.word, w.example);
+    return q;
+  });
+  current = 0;
+  score = 0;
+  wrongList = [];
+  show('quiz');
+  renderQuestion();
+}
+
+function el(tag, className, text) {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function metaLine(q, prefix) {
+  const meta = el('div', 'meta');
+  if (prefix) meta.append(prefix);
+  if (q.pos) meta.append(q.pos);
+  if (q.category) meta.append(el('span', 'tag', q.category));
+  return meta;
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  answered = false;
+  $('qIndex').textContent = `第 ${current + 1} / ${questions.length} 題`;
+  $('qScore').textContent = mode === 'card' ? `會了 ${score}` : `答對 ${score}`;
+  $('progressBar').style.width = `${(current / questions.length) * 100}%`;
+
+  const area = $('qArea');
+  area.innerHTML = '';
+  area.append(el('div', 'mode-label', MODES[mode].label));
+  $('options').innerHTML = '';
+  $('options').classList.toggle('hidden', !MODES[mode].answerKey);
+  $('spellBox').classList.toggle('hidden', mode !== 'spell');
+  $('cardActions').classList.add('hidden');
+  $('feedback').className = 'feedback hidden';
+  $('nextBtn').classList.add('hidden');
+
+  const row = el('div', 'word-row');
+  if (mode === 'en2zh') {
+    row.append(el('span', 'word', q.word), speakButton(q.word));
+    area.append(row, metaLine(q));
+  } else if (mode === 'zh2en') {
+    // 發音會洩漏答案，答題後才在回饋區提供
+    row.append(el('span', 'word zh', q.meaning));
+    area.append(row, metaLine(q));
+  } else if (mode === 'listen') {
+    row.append(speakButton(q.word, 'big'));
+    area.append(row, metaLine(q, '點喇叭可重聽　'));
+    speak(q.word);
+  } else if (mode === 'cloze') {
+    const s = el('div', 'sentence');
+    s.append(q.example.slice(0, q.blank.start), el('span', 'blank'), q.example.slice(q.blank.end));
+    area.append(s, metaLine(q, '空格詞性：'));
+  } else if (mode === 'spell') {
+    row.append(el('span', 'word zh', q.meaning), speakButton(q.word));
+    area.append(row, metaLine(q));
+    const input = $('spellInput');
+    input.value = '';
+    input.disabled = false;
+    $('spellSubmit').disabled = false;
+    input.focus();
+    speak(q.word);
+  } else if (mode === 'card') {
+    area.append(buildFlashcard(q));
+  }
+
+  if (MODES[mode].answerKey) {
+    q.options.forEach((text, i) => {
+      const b = el('button', 'option');
+      b.append(el('span', 'key', String(i + 1)), el('span', '', text));
+      b.addEventListener('click', () => answerChoice(i));
+      $('options').append(b);
+    });
+  }
+}
+
+function buildFlashcard(q) {
+  const card = el('div', 'flashcard');
+  card.setAttribute('role', 'button');
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('aria-label', '翻面');
+  const inner = el('div', 'inner');
+
+  const front = el('div', 'face front');
+  const row = el('div', 'word-row');
+  row.append(el('span', 'word', q.word), speakButton(q.word));
+  front.append(row);
+  if (q.category) front.append(el('span', 'tag', q.category));
+  front.append(el('div', 'hint', '點卡片翻面'));
+
+  const back = el('div', 'face back');
+  back.append(el('div', 'hint', q.word), el('div', 'meaning', `${q.pos} ${q.meaning}`));
+  if (q.example) {
+    const ex = el('div', 'example');
+    ex.append(el('p', '', q.example), speakButton(q.example, 'small'));
+    back.append(ex);
+  }
+
+  inner.append(front, back);
+  card.append(inner);
+  card.addEventListener('click', flipCard);
+  return card;
+}
+
+function flipCard() {
+  const card = document.querySelector('.flashcard');
+  if (!card) return;
+  card.classList.toggle('flipped');
+  $('cardActions').classList.remove('hidden');
+}
+
+// 所有模式答題後共用：計分、排程、統計
+function settle(q, ok) {
+  answered = true;
+  if (ok) score++;
+  else wrongList.push(q);
+  logAnswer(ok);
+  return reviewWord(q, ok);
+}
+
+function answerChoice(index) {
+  if (answered) return;
+  const q = questions[current];
+  const correctText = q[MODES[mode].answerKey];
+  const ok = q.options[index] === correctText;
+  const note = settle(q, ok);
+
+  [...$('options').children].forEach((b, i) => {
+    b.disabled = true;
+    if (q.options[i] === correctText) b.classList.add('correct');
+    else if (i === index) b.classList.add('wrong');
+  });
+
+  if (mode === 'cloze') {
+    // 把空格換成原本的字
+    const s = $('qArea').querySelector('.sentence');
+    s.innerHTML = '';
+    s.append(q.example.slice(0, q.blank.start), el('mark', '', q.example.slice(q.blank.start, q.blank.end)), q.example.slice(q.blank.end));
+    s.querySelector('mark').style.cssText = 'background:none;color:var(--primary-dark);font-weight:700';
+  }
+  showFeedback(q, ok, note);
+}
+
+function answerSpell() {
+  if (answered) return;
+  const q = questions[current];
+  const typed = normalizeSpelling($('spellInput').value);
+  const expected = normalizeSpelling(q.word);
+  const ok = typed === expected;
+  const note = settle(q, ok);
+  $('spellInput').disabled = true;
+  $('spellSubmit').disabled = true;
+
+  let extra = null;
+  if (!ok) {
+    extra = el('div');
+    const ops = spellDiff(typed, expected);
+    const mine = el('div', 'diff');
+    mine.append(el('span', 'lbl', '你的拼字'));
+    const right = el('div', 'diff');
+    right.append(el('span', 'lbl', '正確拼字'));
+    ops.forEach(op => {
+      if (op.type === 'ok') {
+        mine.append(op.ch);
+        right.append(op.ch);
+      } else if (op.type === 'sub') {
+        mine.append(el('span', 'bad', op.ch));
+        right.append(el('span', 'hl', op.exp));
+      } else if (op.type === 'extra') {
+        mine.append(el('span', 'extra', op.ch));
+      } else {
+        mine.append(el('span', 'miss', '_'));
+        right.append(el('span', 'hl', op.exp));
+      }
+    });
+    if (!typed) mine.append(el('span', 'lbl', '（未作答）'));
+    const errors = ops.filter(o => o.type !== 'ok').length;
+    extra.append(mine, right, el('div', 'srs-note', `共 ${errors} 處錯誤：紅底＝打錯、刪除線＝多打、底線＿＝漏打`));
+  }
+  showFeedback(q, ok, note, extra);
+}
+
+function answerCard(know) {
+  if (answered) return;
+  const q = questions[current];
+  settle(q, know);
+  next();
+}
+
+function showFeedback(q, ok, note, extra) {
+  const fb = $('feedback');
+  fb.className = 'feedback ' + (ok ? 'correct' : 'wrong');
+  fb.innerHTML = '';
+  fb.append(el('div', 'result', ok ? '✓ 答對了！' : '✗ 答錯了'));
+  if (extra) fb.append(extra);
+  if (note) fb.append(el('div', 'srs-note', note));
+
+  const line = el('div', 'answer-line');
+  line.append(speakButton(q.word, 'small'), el('b', '', q.word), el('span', '', `${q.pos} ${q.meaning}`));
+  fb.append(line);
+  if (q.example && mode !== 'cloze') {
+    const ex = el('div', 'example');
+    ex.append(el('p', '', q.example), speakButton(q.example, 'small'));
+    fb.append(ex);
+  } else if (mode === 'cloze') {
+    const ex = el('div', 'example');
+    ex.append(el('p', '', '聽整句：'), speakButton(q.example, 'small'));
+    fb.append(ex);
+  }
+
+  $('qScore').textContent = `答對 ${score}`;
+  $('nextBtn').textContent = current === questions.length - 1 ? '查看結果' : '下一題';
+  $('nextBtn').classList.remove('hidden');
+  $('nextBtn').focus();
+}
+
+function next() {
+  current++;
+  if (current < questions.length) renderQuestion();
+  else showResult();
+}
+
+function showResult() {
+  const total = questions.length;
+  const pct = Math.round((score / total) * 100);
+  $('finalScore').textContent = `${pct}%`;
+  $('finalSub').textContent = mode === 'card'
+    ? `${total} 張字卡中，會了 ${score} 張`
+    : `${total} 題中答對 ${score} 題`;
+
+  const review = $('review');
+  review.innerHTML = '';
+  if (wrongList.length) {
+    const ul = el('ul');
+    wrongList.forEach(w => {
+      const li = el('li');
+      const info = el('div');
+      info.append(el('div', 'w', w.word), el('div', 'm', `${w.pos} ${w.meaning}`));
+      li.append(speakButton(w.word, 'small'), info);
+      ul.append(li);
+    });
+    review.append(el('h3', '', `需要複習的單字（${wrongList.length}）`), ul);
+  } else {
+    const h = el('h3', '', '全部答對，太厲害了！🎉');
+    h.style.textAlign = 'center';
+    review.append(h);
+  }
+  $('retryWrongBtn').classList.toggle('hidden', wrongList.length === 0);
+  show('result');
+}
+
+/* ---------- 錯題本頁 ---------- */
+
+function renderBook() {
+  const list = $('bookList');
+  list.innerHTML = '';
+  const entries = bookEntries();
+  const today = dayNumber();
+  if (!entries.length) list.append(el('li', 'empty', '錯題本是空的，繼續保持！'));
+
+  entries.forEach(e => {
+    const li = el('li');
+    const row = el('div', 'row');
+    const info = el('div', 'info');
+    info.append(el('div', 'w', e.word), el('div', 'm', `${e.pos} ${e.meaning}${e.category ? '・' + e.category : ''}`));
+    const del = el('button', 'del', '✕');
+    del.title = '從錯題本移除';
+    del.setAttribute('aria-label', '從錯題本移除');
+    del.addEventListener('click', () => {
+      delete srs[wordKey(e)];
+      saveSrs();
+      renderBook();
+    });
+    row.append(speakButton(e.word, 'small'), info, del);
+    li.append(row);
+    if (e.example) li.append(el('p', 'ex', e.example));
+
+    const stats = el('div', 'stats');
+    stats.append(el('span', '', `答錯 ${e.wrong} 次`));
+    const progress = el('span');
+    const dots = el('span', 'dots');
+    for (let i = 0; i < MASTERED; i++) dots.append(el('i', i < e.level ? 'on' : ''));
+    progress.append(dots, `${e.level}/${MASTERED}`);
+    stats.append(progress);
+    stats.append(el('span', e.due <= today ? 'due-now' : '', `複習：${relativeDay(e.due)}`));
+    li.append(stats);
+    list.append(li);
+  });
+  $('practiceBookBtn').disabled = entries.length === 0;
+  $('clearBookBtn').classList.toggle('hidden', entries.length === 0);
+}
+
+/* ---------- 統計頁 ---------- */
+
+const tip = $('tip');
+
+function showTip(text, x, y) {
+  tip.textContent = text;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+  tip.classList.remove('hidden');
+}
+function hideTip() { tip.classList.add('hidden'); }
+
+// 滑鼠移入或手指點擊都會顯示提示
+function bindTip(target, getText, getPoint) {
+  const handler = (e) => {
+    const p = getPoint(e);
+    showTip(getText(), p.x, p.y);
+  };
+  target.addEventListener('pointerenter', handler);
+  target.addEventListener('pointerdown', handler);
+  target.addEventListener('pointerleave', hideTip);
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function lastDays(n) {
+  const today = dayNumber();
+  return Array.from({ length: n }, (_, i) => {
+    const d = today - n + 1 + i;
+    const s = stats[d] || { total: 0, correct: 0 };
+    return { day: d, label: i === n - 1 ? '今天' : dayLabel(d), total: s.total, correct: s.correct };
+  });
+}
+
+function niceMax(v) {
+  if (v <= 5) return 5;
+  const step = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (m * step >= v) return m * step;
+  return 10 * step;
+}
+
+// 依容器實際寬度繪製，手機上字不會被縮小
+function chartFrame(container, height) {
+  container.innerHTML = '';
+  const W = container.clientWidth || 320;
+  const pad = { l: 30, r: 10, t: 16, b: 24 };
+  const svg = svgEl('svg', { width: W, height, viewBox: `0 0 ${W} ${height}`, role: 'img' });
+  container.append(svg);
+  return { svg, W, H: height, pad, iw: W - pad.l - pad.r, ih: height - pad.t - pad.b };
+}
+
+function xLabels(f, days, band) {
+  const every = f.iw / days.length < 34 ? 2 : 1;
+  days.forEach((d, i) => {
+    // 從今天往回隔一個標一次，確保「今天」一定有標
+    if ((days.length - 1 - i) % every) return;
+    const t = svgEl('text', { x: f.pad.l + band * i + band / 2, y: f.H - 6, 'text-anchor': 'middle', class: 'axis' });
+    t.textContent = d.label;
+    f.svg.append(t);
+  });
+}
+
+function drawCountChart(days) {
+  const box = $('countChart');
+  if (!days.some(d => d.total)) {
+    box.innerHTML = '<div class="chart-empty">還沒有答題紀錄，做一次測驗就會出現</div>';
+    return;
+  }
+  const f = chartFrame(box, 180);
+  const max = niceMax(Math.max(...days.map(d => d.total)));
+  const y = v => f.pad.t + f.ih - (v / max) * f.ih;
+  [0, max / 2, max].forEach(v => {
+    f.svg.append(svgEl('line', { x1: f.pad.l, x2: f.W - f.pad.r, y1: y(v), y2: y(v), class: v ? 'grid' : 'baseline' }));
+    const t = svgEl('text', { x: f.pad.l - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'axis' });
+    t.textContent = v;
+    f.svg.append(t);
+  });
+  const band = f.iw / days.length;
+  const bw = Math.min(22, band * 0.6);
+  days.forEach((d, i) => {
+    const cx = f.pad.l + band * i + band / 2;
+    if (d.total) {
+      // 上方圓角、底部貼齊基線
+      const top = y(d.total), h = f.pad.t + f.ih - top, r = Math.min(4, h, bw / 2);
+      const x0 = cx - bw / 2, x1 = cx + bw / 2, yb = f.pad.t + f.ih;
+      f.svg.append(svgEl('path', {
+        d: `M${x0},${yb} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x1 - r} Q${x1},${top} ${x1},${top + r} V${yb} Z`,
+        class: 'bar' + (i === days.length - 1 ? ' today' : ''),
+      }));
+    }
+    const hit = svgEl('rect', { x: cx - band / 2, y: f.pad.t, width: band, height: f.ih, class: 'hit' });
+    f.svg.append(hit);
+    bindTip(hit, () => `${d.label}：答題 ${d.total} 題`, () => {
+      const r = hit.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: box.getBoundingClientRect().top + y(d.total) };
+    });
+  });
+  xLabels(f, days, band);
+}
+
+function drawAccChart(days) {
+  const box = $('accChart');
+  if (!days.some(d => d.total)) {
+    box.innerHTML = '<div class="chart-empty">還沒有答題紀錄</div>';
+    return;
+  }
+  const f = chartFrame(box, 180);
+  const y = v => f.pad.t + f.ih - (v / 100) * f.ih;
+  [0, 50, 100].forEach(v => {
+    f.svg.append(svgEl('line', { x1: f.pad.l, x2: f.W - f.pad.r, y1: y(v), y2: y(v), class: v ? 'grid' : 'baseline' }));
+    const t = svgEl('text', { x: f.pad.l - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'axis' });
+    t.textContent = v + '%';
+    f.svg.append(t);
+  });
+  const band = f.iw / days.length;
+  const pts = days.map((d, i) => d.total
+    ? { x: f.pad.l + band * i + band / 2, y: y((d.correct / d.total) * 100), d }
+    : null);
+
+  // 連續有作答的日子才連線，中間沒練習就斷開
+  let seg = [];
+  const flush = () => {
+    if (seg.length > 1) f.svg.append(svgEl('polyline', { points: seg.map(p => `${p.x},${p.y}`).join(' '), class: 'line' }));
+    seg = [];
+  };
+  pts.forEach(p => { if (p) seg.push(p); else flush(); });
+  flush();
+
+  const cross = svgEl('line', { y1: f.pad.t, y2: f.pad.t + f.ih, class: 'cross', visibility: 'hidden' });
+  f.svg.append(cross);
+  pts.forEach(p => p && f.svg.append(svgEl('circle', { cx: p.x, cy: p.y, r: 4, class: 'dot' })));
+
+  // 只標最後一個點的數值
+  const lastPt = [...pts].reverse().find(Boolean);
+  const lbl = svgEl('text', { x: lastPt.x, y: lastPt.y - 9, 'text-anchor': 'middle', class: 'val' });
+  lbl.textContent = Math.round((lastPt.d.correct / lastPt.d.total) * 100) + '%';
+  f.svg.append(lbl);
+
+  pts.forEach((p, i) => {
+    if (!p) return;
+    const hit = svgEl('rect', { x: p.x - band / 2, y: f.pad.t, width: band, height: f.ih, class: 'hit' });
+    f.svg.append(hit);
+    const d = p.d;
+    bindTip(hit, () => {
+      cross.setAttribute('x1', p.x); cross.setAttribute('x2', p.x);
+      cross.setAttribute('visibility', 'visible');
+      return `${d.label}：正確率 ${Math.round((d.correct / d.total) * 100)}%（${d.correct}/${d.total}）`;
+    }, () => {
+      const r = box.getBoundingClientRect();
+      return { x: r.left + p.x, y: r.top + p.y };
+    });
+    hit.addEventListener('pointerleave', () => cross.setAttribute('visibility', 'hidden'));
+  });
+  xLabels(f, days, band);
+}
+
+function drawCategoryChart() {
+  const box = $('catChart');
+  box.innerHTML = '';
+  // 單字表 + 複習紀錄（紀錄裡可能有不在目前單字表的字）
+  const words = distractorPool();
+  if (!words.length) {
+    box.innerHTML = '<div class="chart-empty">先匯入單字就能看到各分類熟練度</div>';
+    return;
+  }
+  const groups = {};
+  words.forEach(w => {
+    const cat = w.category || '未分類';
+    const g = groups[cat] || (groups[cat] = { mastered: 0, learning: 0, new: 0 });
+    const rec = srs[wordKey(w)];
+    if (!rec) g.new++;
+    else if (rec.level >= MASTERED) g.mastered++;
+    else g.learning++;
+  });
+  const order = [...CATEGORIES, ...Object.keys(groups).filter(c => !CATEGORIES.includes(c))];
+  order.filter(c => groups[c]).forEach(cat => {
+    const g = groups[cat];
+    const total = g.mastered + g.learning + g.new;
+    const row = el('div', 'cat-row');
+    const head = el('div', 'head');
+    head.append(el('b', '', `${cat}（${Math.round((g.mastered / total) * 100)}% 熟練）`),
+      el('span', '', `熟練 ${g.mastered}・學習中 ${g.learning}・未學習 ${g.new}`));
+    const stack = el('div', 'stack');
+    [['mastered', '已熟練'], ['learning', '學習中'], ['new', '未學習']].forEach(([k, name]) => {
+      if (!g[k]) return;
+      const seg = el('div', 'lv-' + k);
+      seg.style.flex = g[k];
+      bindTip(seg, () => `${cat}・${name}：${g[k]} 個（${Math.round((g[k] / total) * 100)}%）`, () => {
+        const r = seg.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top };
+      });
+      stack.append(seg);
+    });
+    row.append(head, stack);
+    box.append(row);
+  });
+}
+
+function renderStats() {
+  const days = lastDays(14);
+  const sum = days.reduce((a, d) => ({ total: a.total + d.total, correct: a.correct + d.correct }), { total: 0, correct: 0 });
+  const mastered = Object.values(srs).filter(r => r.level >= MASTERED).length;
+  const tiles = [
+    [streakDays(), '天', '連續學習'],
+    [days[days.length - 1].total, '題', '今日答題'],
+    [sum.total ? Math.round((sum.correct / sum.total) * 100) : '–', sum.total ? '%' : '', '近 14 天正確率'],
+    [mastered, '個', '已熟練單字'],
+  ];
+  $('statTiles').innerHTML = '';
+  tiles.forEach(([v, unit, k]) => {
+    const t = el('div', 'tile');
+    const val = el('div', 'v', String(v));
+    if (unit) val.append(el('small', '', unit));
+    t.append(val, el('div', 'k', k));
+    $('statTiles').append(t);
+  });
+
+  drawCountChart(days);
+  drawAccChart(days);
+  drawCategoryChart();
+
+  const table = $('statTable');
+  table.innerHTML = '<tr><th>日期</th><th>答題</th><th>答對</th><th>正確率</th></tr>';
+  days.slice().reverse().forEach(d => {
+    const tr = el('tr');
+    [d.label, d.total, d.correct, d.total ? Math.round((d.correct / d.total) * 100) + '%' : '–']
+      .forEach(v => tr.append(el('td', '', String(v))));
+    table.append(tr);
+  });
+}
+
+/* ---------- 事件 ---------- */
+
+$('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) loadWords(await readFileText(file), file.name);
+  e.target.value = '';
+});
+
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', async (e) => {
+  const file = e.dataTransfer.files[0];
+  if (file) loadWords(await readFileText(file), file.name);
+});
+
+$('useSample').addEventListener('click', () => loadWords(BUILTIN_CSV, BUILTIN_NAME));
+
+$('countSelect').addEventListener('change', () => {
+  const custom = $('countSelect').value === 'custom';
+  $('customCount').classList.toggle('hidden', !custom);
+  if (custom) $('customCount').focus();
+});
+
+$('startBtn').addEventListener('click', () => {
+  const cats = [...document.querySelectorAll('#catChips input:checked')].map(c => c.value);
+  // 沒有分類欄位或分類不在三類中的單字，一律視為符合
+  const match = w => !CATEGORIES.includes(w.category) || cats.includes(w.category);
+  const pool = allWords.filter(match);
+  if (!pool.length) { alert('所選分類沒有單字，請至少勾選一個有單字的分類。'); return; }
+
+  // 出題順序：今天到期 → 錯題本 → 其他，各組內隨機
+  const today = dayNumber();
+  const rank = w => {
+    const r = srs[wordKey(w)];
+    if (r && r.due !== null && r.due <= today) return 0;
+    if (r && r.inBook) return 1;
+    return 2;
+  };
+  const sorted = [0, 1, 2].flatMap(k => shuffle(pool.filter(w => rank(w) === k)));
+  const count = selectedCount();
+  startQuiz(shuffle(count > 0 ? sorted.slice(0, count) : sorted));
+});
+
+document.querySelectorAll('#accentChips input').forEach(input => {
+  input.checked = input.value === accent;
+  input.addEventListener('change', () => {
+    setAccent(input.value);
+    speak('Welcome to the TOEIC vocabulary quiz.');
+  });
+});
+
+$('reviewBtn').addEventListener('click', () => startQuiz(shuffle(dueWords())));
+$('spellSubmit').addEventListener('click', answerSpell);
+$('spellInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); answerSpell(); }
+});
+$('cardHard').addEventListener('click', () => answerCard(false));
+$('cardKnow').addEventListener('click', () => answerCard(true));
+$('nextBtn').addEventListener('click', next);
+$('quitBtn').addEventListener('click', () => {
+  if (current === 0 && !answered) return show('setup');
+  if (confirm('要結束這次測驗嗎？已作答的題目會保留紀錄。')) {
+    questions = questions.slice(0, current + (answered ? 1 : 0));
+    if (questions.length) showResult();
+    else show('setup');
+  }
+});
+$('retryWrongBtn').addEventListener('click', () => startQuiz(shuffle(wrongList)));
+$('restartBtn').addEventListener('click', () => show('setup'));
+
+$('openBookBtn').addEventListener('click', () => { renderBook(); show('book'); });
+$('bookBackBtn').addEventListener('click', () => show(lastSection));
+$('practiceBookBtn').addEventListener('click', () => startQuiz(shuffle(bookEntries())));
+$('clearBookBtn').addEventListener('click', () => {
+  if (!confirm('確定要清空錯題本嗎？這些單字的複習排程也會一併刪除，無法復原。')) return;
+  bookEntries().forEach(e => delete srs[wordKey(e)]);
+  saveSrs();
+  renderBook();
+});
+
+$('openStatsBtn').addEventListener('click', () => { show('stats'); renderStats(); });
+$('statsBackBtn').addEventListener('click', () => show(lastSection));
+window.addEventListener('resize', () => {
+  if (!$('stats').classList.contains('hidden')) renderStats();
+});
+document.addEventListener('scroll', hideTip, { passive: true });
+
+// 鍵盤：1–4 選答案、Enter 下一題、空白鍵發音；字卡模式空白鍵翻面、1 還不熟、2 會了
+document.addEventListener('keydown', (e) => {
+  if ($('quiz').classList.contains('hidden')) return;
+  if (e.target === $('spellInput')) return;
+  const flipped = document.querySelector('.flashcard.flipped');
+
+  if (mode === 'card') {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+    else if (!$('cardActions').classList.contains('hidden') && (e.key === '1' || e.key === '2')) answerCard(e.key === '2');
+    return;
+  }
+  if (!answered && MODES[mode].answerKey && e.key >= '1' && e.key <= '4') {
+    const i = Number(e.key) - 1;
+    if (i < questions[current].options.length) answerChoice(i);
+  } else if (answered && e.key === 'Enter' && document.activeElement !== $('nextBtn')) {
+    next();
+  } else if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') {
+    e.preventDefault();
+    // 中選英、填空在作答前發音等於給答案
+    if (answered || ['en2zh', 'listen', 'spell'].includes(mode)) speak(questions[current].word);
+  }
+});
+
+/* ---------- 啟動 ---------- */
+
+const saved = storeGet(KEYS.words, null);
+if (saved && ['內建範例', BUILTIN_NAME].includes(saved.source)) {
+  // 用內建單字庫的人每次都讀最新版 words.js，單字庫擴充後自動生效
+  loadWords(BUILTIN_CSV, BUILTIN_NAME);
+} else if (saved && saved.words && saved.words.length >= 4) {
+  setWords(saved.words, saved.source);
+}
+refreshHome();
+
+// PWA：離線快取。service worker 只能在 http(s) 下運作，file:// 直接開啟時略過
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
